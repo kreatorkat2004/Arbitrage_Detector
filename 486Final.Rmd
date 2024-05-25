@@ -1,0 +1,206 @@
+---
+title: "486Final"
+author: "Aaron Wu"
+date: "2024-04-17"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Dataset storage after scraping Kaggle
+final_dataset_with_odds <- read.csv("final_dataset_with_odds.csv", stringsAsFactors = FALSE)
+year_0 <- read.csv("2000-2001.csv", stringsAsFactors = FALSE)
+year_1 <- read.csv("2001-2002.csv", stringsAsFactors = FALSE)
+year_2 <- read.csv("2002-2003.csv", stringsAsFactors = FALSE)
+year_3 <- read.csv("2003-2004.csv", stringsAsFactors = FALSE)
+year_4 <- read.csv("2004-2005.csv", stringsAsFactors = FALSE)
+year_5 <- read.csv("2005-2006.csv", stringsAsFactors = FALSE)
+year_6 <- read.csv("2006-2007.csv", stringsAsFactors = FALSE)
+year_7 <- read.csv("2007-2008.csv", stringsAsFactors = FALSE)
+year_8 <- read.csv("2008-2009.csv", stringsAsFactors = FALSE)
+year_9 <- read.csv("2009-2010.csv", stringsAsFactors = FALSE)
+year_10 <- read.csv("2010-2011.csv", stringsAsFactors = FALSE)
+year_11 <- read.csv("2011-2012.csv", stringsAsFactors = FALSE)
+year_12 <- read.csv("2012-2013.csv", stringsAsFactors = FALSE)
+year_13 <- read.csv("2013-2014.csv", stringsAsFactors = FALSE)
+year_14 <- read.csv("2014-2015.csv", stringsAsFactors = FALSE)
+year_15 <- read.csv("2015-2016.csv", stringsAsFactors = FALSE)
+year_16 <- read.csv("2016-2017.csv", stringsAsFactors = FALSE)
+year_17 <- read.csv("2017-2018.csv", stringsAsFactors = FALSE)
+year_18 <- read.csv("2018-2019.csv", stringsAsFactors = FALSE)
+year_19 <- read.csv("2019-2020.csv", stringsAsFactors = FALSE)
+year_20 <- read.csv("2020-2021.csv", stringsAsFactors = FALSE)
+```
+
+```{r}
+# Conversion of data to keep only odds data
+subset_final <- final_dataset_with_odds[, c(44:55)]
+subset_year_0 <- na.omit(year_0[, c(34:39, 43:48)])
+subset_year_1 <- year_1[, c(24:44)]
+subset_year_2 <- year_2[, c(24:44)]
+subset_year_3 <- year_3[, c(24:44)]
+subset_year_4 <- year_4[, c(24:44)]
+subset_year_5 <- year_5[, c(24:50)]
+subset_year_6 <- year_6[, c(24:50)]
+subset_year_7 <- year_7[, c(24:41, 45:51)]
+subset_year_8 <- year_8[, c(24:50)]
+subset_year_9 <- year_9[, c(24:50)]
+subset_year_10 <- year_10[, c(24:50)]
+subset_year_11 <- year_11[, c(24:50)]
+subset_year_12 <- year_12[, c(24:50)]
+subset_year_13 <- year_13[, c(24:50)]
+subset_year_14 <- year_14[, c(24:50)]
+subset_year_15 <- year_15[, c(24:50)]
+subset_year_16 <- year_16[, c(24:50)]
+subset_year_17 <- year_17[, c(24:50)]
+subset_year_18 <- year_8[, c(24:50)]
+subset_year_19 <- year_19[, c(25:42)]
+subset_year_20 <- year_20[, c(25:42)]
+```
+
+```{r}
+# Function to find min non-NA value in probability vector
+min_col <- function(probs){
+  min <- probs[1]
+  for (i in 1:ncol(probs)){
+    if(!is.na(probs[i])){
+      if (probs[i] < min) {
+        min <- probs[i]
+      }
+    }
+  }
+  return(min)
+}
+```
+
+```{r}
+# Better detect arbitrage
+better_detect <- function(odds_df, full_df) {
+  arbitrage_opportunities <- data.frame()
+  
+  for(i in 1:nrow(odds_df)) {
+    # just a single day's betting probabilities
+    one_day_p <- 1/(odds_df[i,])
+    h_ps <- one_day_p[1]
+    d_ps <- one_day_p[2]
+    a_ps <- one_day_p[3]
+    # separate them into home win, draw, away win
+    for (j in 4:ncol(one_day_p)){
+      if(j %% 3 == 1){
+        h_ps <- cbind(h_ps, one_day_p[j])
+      } else if (j %% 3==2){
+        d_ps <- cbind(d_ps, one_day_p[j])
+      } else {
+        a_ps <- cbind(a_ps, one_day_p[j])
+      }
+    }
+    # find the min probability from home win, draw, and away win
+    lowest_h <- min_col(h_ps)
+    lowest_d <- min_col(d_ps)
+    lowest_a <- min_col(a_ps)
+    
+    
+    # check if sum of lowest probabilities for home win, away win, draw less than 1 (indicates arbitrage opportunity)
+    if (lowest_h + lowest_d + lowest_a < 1) {
+      date <- full_df[i, "Date"]
+      home_team <- full_df[i, "HomeTeam"]
+      away_team <- full_df[i, "AwayTeam"]
+      arbitrage = data.frame()
+      arbitrage[1,] = NA
+      arbitrage[,'new_column'] = NA
+      arbitrage$index <- i
+      arbitrage$date <- date
+      arbitrage$home <- home_team
+      arbitrage$away <- away_team
+      arbitrage$h_name <- colnames(lowest_h)[1]
+      arbitrage$d_name <- colnames(lowest_d)[1]
+      arbitrage$a_name <- colnames(lowest_a)[1]
+      
+      arbitrage$h_p <- as.numeric(lowest_h[1])
+      arbitrage$d_p <- as.numeric(lowest_d[1])
+      arbitrage$h_a <- as.numeric(lowest_a[1])
+      
+      arbitrage$win <- as.numeric(lowest_h+lowest_d+lowest_a)
+      arbitrage_opportunities <- rbind(arbitrage_opportunities, arbitrage)
+    }
+  }
+    arbitrage_opportunities <- arbitrage_opportunities[-1]
+  return(arbitrage_opportunities)
+}
+year_10_arbs <- better_detect(subset_year_10, year_10)
+# Create table of arbitrage opportunities
+colnames(year_10_arbs) <- c("Index", "Date","Home Team", "Away Team", "Home Bookie", "Draw Bookie", "Away Bookie", "Home Prob.", "Draw Prob.", "Away Prob.", "Prob. Sum")
+knitr::kable(year_10_arbs) |> kableExtra::kable_styling(font_size = 7)
+```
+
+
+```{r}
+true_p <- function(probs, arb, hda){
+  #probs: one row of probabilities of (H,D,A), with colnames bookies
+  #arb: one row of output from arbs function, 
+  sum = 0
+  count = 0
+  for (i in 1:ncol(probs)){
+      if (i%%3 == hda) {
+        sum = sum + as.numeric(probs[i]);
+        count = count + 1
+      }
+  }
+  return(count/sum)
+}
+
+
+true_p(prob_test, test_date, 0)
+
+# Calculate normalized probabilities for home win, away win, draw
+calc_ps <- function(probs, arb) {
+  h <- true_p(probs, arb, 1)
+  d <- true_p(probs, arb, 2)
+  a <- true_p(probs, arb, 0)
+  
+  total <- h + d + a
+  return(c(h/total, d/total, a/total))
+}
+
+test_date <- year_10_arbs[2,]
+prob_test <- subset_year_10[146,]
+
+# Compute returns for home win, away win, draw based on extracted test date probabilities
+listphat <- calc_ps(prob_test, test_date)
+p1 <- listphat[1]
+p2 <- listphat[2]
+p3 <- listphat[3]
+R1 <- as.numeric(1/test_date["Home Prob."])-1
+R2 <- as.numeric(1/test_date["Draw Prob."])-1
+R3 <- as.numeric(1/test_date["Away Prob."])-1
+T_ <- -0.05
+
+# Objective function coefficients
+obj <- c(-p1 + p2 * R2 - p3, -p1 - p2 + p3 * R3)
+
+# Constraint matrix coefficients
+constr <- matrix(c(-1, -1,
+                   R2, -1,
+                   -1, R3,
+                   1,  0,
+                   0,  1), nrow = 5, byrow = TRUE)
+
+# Directions of constraints
+dir <- c(">=", ">=", ">=", ">=", ">=")
+
+# Right-hand side values
+rhs <- c(T_ - R1, T_ + 1, T_ + 1, 0, 0)
+
+# Solve the linear program
+lp_solution <- lp(direction = "max", objective.in = obj, const.mat = constr, const.dir = dir, const.rhs = rhs)
+
+# Print the solution
+lp_solution$solution
+
+subset_year_10[72,]
+true_p(subset_year_10[72,], test_date, 1)
+
+```

@@ -1,4 +1,4 @@
-# ArbitrageDetector486
+# ArbitrageDetector
 
 This project is a comprehensive analysis of arbitrage opportunities in sports betting, specifically focused on historical data from various seasons. Using datasets sourced from Kaggle, the project aims to identify and analyze potential arbitrage opportunities by examining betting odds for home wins, draws, and away wins.
 

@@ -4,7 +4,7 @@ This project is a comprehensive analysis of arbitrage opportunities in sports be
 
 ## Contributors
 
-Andrew Sun 
+Andrew Sun,
 Jack Guan
 
 ## Project Overview
